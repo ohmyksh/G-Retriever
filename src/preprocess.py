@@ -3,88 +3,49 @@ import re
 import torch
 import os
 from sentence_transformers import SentenceTransformer
+import numpy as np
+from sklearn.model_selection import train_test_split
+from torch_geometric.data import Data
+
+
+path = '/home/shkim/G-Retriever-Implement/data/expla_graphs/'
+
+def generate_split(num_nodes, path):
+
+    # Split the dataset into train, val, and test sets
+    indices = np.arange(num_nodes)
+    train_indices, temp_data = train_test_split(indices, test_size=0.4, random_state=42)
+    val_indices, test_indices = train_test_split(temp_data, test_size=0.5, random_state=42)
+    print("# train samples: ", len(train_indices))
+    print("# val samples: ", len(val_indices))
+    print("# test samples: ", len(test_indices))
+
+    # Create a folder for the split
+    os.makedirs(path, exist_ok=True)
+
+    # Save the indices to separate files
+    with open(f'{path}/train_indices.txt', 'w') as file:
+        file.write('\n'.join(map(str, train_indices)))
+
+    with open(f'{path}/val_indices.txt', 'w') as file:
+        file.write('\n'.join(map(str, val_indices)))
+
+    with open(f'{path}/test_indices.txt', 'w') as file:
+        file.write('\n'.join(map(str, test_indices)))
+        
+
+os.makedirs(path+'graphs', exist_ok=True)
 
 # for explagraph.
 
 # def explagraph_preprocess():
-#     dataset_path = '/home/shkim/G-Retriever-Implement/data/expla_graphs/train_dev.tsv'
+#     dataset_path = path + 'train_dev.tsv'
 #     dataset = pd.read_csv(dataset_path, sep='\t')
-#     embeddings = graph_indexing(dataset)
-    
-# def graph_indexing(dataset):
-#     sbert = SentenceTransformer('sentence-transformers/all-roberta-large-v1')
-    
-#     all_node_embeddings = []
-#     all_edge_embeddings = []
-    
-#     # extract nodes, edges
-#     for index, row in dataset.itterrows():
-#         print(f"Processing row {index + 1}/{len(dataset)}")
-        
-#         graph = row['graph']
-#         triplets = re.findall(r'\((.*?)\)', graph)
-#         nodes = {}
-#         edges = []
-#         for t in triplets:
-#             src, edge, dst = t.split(';')
-#             src = src.lower().strip()
-#             dst = dst.lower().strip()
-#             edge, edge.lower().strip()
-#             if src not in nodes:
-#                 nodes[src] = len(nodes)
-#             if dst not in nodes:
-#                 nodes[dst] = len(nodes)
-#             edges.append({'src': src, 'edge': edge, 'dst': dst})
-            
-#         print(f" - Nodes extracted: {list(nodes.keys())}")
-#         print(f" - Edges extracted: {edges}")
-        
-    
-#         # create nodes, edges embeddings by using sentence bert
-#         print('Encoding graphs...')
-        
-#         # Create node embeddings
-#         node_embeddings = {}
-#         for node in nodes.keys():
-#             embedding = sbert.encode(node)
-#             node_embeddings[node] = embedding
-#         all_node_embeddings.append(node_embeddings)
-        
-#         print(f" - Node embeddings created for row {index + 1}")
-        
-#         # Create edge embeddings
-#         edge_embeddings = []
-#         for edge in edges:
-#             edge_text = f"{edge['src']} {edge['edge']} {edge['dst']}"
-#             embedding = sbert.encode(edge_text)
-#             edge_embeddings.append(embedding)
-#         all_edge_embeddings.append(edge_embeddings)
-        
-#         print(f" - Edge embeddings created for row {index + 1}")
-    
-#     print("All rows processed.")
-#     return [all_node_embeddings, all_edge_embeddings]
-                
-    
-    
 
-def explagraph_preprocess():
-    dataset_path = '/home/shkim/G-Retriever-Implement/data/expla_graphs/train_dev.tsv'
-    dataset = pd.read_csv(dataset_path, sep='\t')
-    # 테스트를 위해 첫 번째 행만 전달합니다.
-    embeddings = graph_indexing(dataset.head(1))  
-    print('Single row embedding generated successfully.')
-
-def graph_indexing(dataset):
-    sbert = SentenceTransformer('sentence-transformers/all-roberta-large-v1')
-    
-    all_node_embeddings = []
-    all_edge_embeddings = []
-    
-    # Extract nodes, edges from the first row only
+def extract_graph(dataset):
+    graphs = []
     for index, row in dataset.iterrows():
-        print(f"Processing row {index + 1}/{len(dataset)}")
-        
+        # print(f"Processing row {index + 1}/{len(dataset)}")
         graph = row['graph']
         triplets = re.findall(r'\((.*?)\)', graph)
         nodes = {}
@@ -93,41 +54,66 @@ def graph_indexing(dataset):
             src, edge, dst = t.split(';')
             src = src.lower().strip()
             dst = dst.lower().strip()
-            edge = edge.lower().strip()
+            edge, edge.lower().strip()
             if src not in nodes:
                 nodes[src] = len(nodes)
             if dst not in nodes:
                 nodes[dst] = len(nodes)
-            edges.append({'src': src, 'edge': edge, 'dst': dst})
-            
-        print(f" - Nodes extracted: {list(nodes.keys())}")
-        print(f" - Edges extracted: {edges}")
+            edges.append({'src': nodes[src], 'edge_attr': edge, 'dst': nodes[dst]})
+        graphs.append({
+            'nodes': nodes,
+            'edges': edges
+        })
+    return graphs
+
+def graph_indexing(dataset):
+    sbert = SentenceTransformer('sentence-transformers/all-roberta-large-v1')
+    
+    # extract nodes, edges
+    graphs = extract_graph(dataset)
+    for i, graph in enumerate(graphs):
+        print(f"Graph {i + 1}:")
+        print("Nodes:", graph['nodes'])
+        print("Edges:", graph['edges'])
+        print("\n")
         
+        
+    # create nodes, edges embeddings by using sentence bert
+    print('Encoding graphs...')
+    
+    # Create node embeddings
+    for i, graph in enumerate(graphs):
+        print(f"Processing graph {i + 1}/{len(graphs)}")
         # Create node embeddings
-        print('Encoding nodes...')
-        node_embeddings = {}
-        for node in nodes.keys():
-            embedding = sbert.encode(node)
-            node_embeddings[node] = embedding
-            print(f"   Node: {node} -> Embedding: {embedding}")
-        all_node_embeddings.append(node_embeddings)
-        
-        print(f" - Node embeddings created for row {index + 1}")
+        node_attributes = list(graph['nodes'].keys())
+        node_embeddings = sbert.encode(node_attributes, convert_to_tensor=True)
         
         # Create edge embeddings
-        print('Encoding edges...')
-        edge_embeddings = []
-        for edge in edges:
-            edge_text = f"{edge['src']} {edge['edge']} {edge['dst']}"
-            embedding = sbert.encode(edge_text)
-            edge_embeddings.append(embedding)
-            print(f"   Edge: {edge_text} -> Embedding: {embedding}")
-        all_edge_embeddings.append(edge_embeddings)
+        edge_attributes = [edge['edge_attr'] for edge in graph['edges']]
+        edge_embeddings = sbert.encode(edge_attributes, convert_to_tensor=True)
+        edge_index = torch.LongTensor([[edge['src'], edge['dst']] for edge in graph['edges']])
+        num_nodes = len(graph['nodes'])
         
-        print(f" - Edge embeddings created for row {index + 1}")
+        data = Data(node_embed=node_embeddings, edge_index=edge_index, edge_embed=edge_embeddings, num_nodes=num_nodes)
+        torch.save(data, f'{path}/graph_{i}.pt')
+        
+        print(f"Graph {i + 1} processed and saved.")
+        print(f" - Number of nodes: {num_nodes}")
+        print(f" - Node embeddings shape: {node_embeddings.shape}")
+        print(f" - Edge embeddings shape: {edge_embeddings.shape}")
+        print(f" - Edge index shape: {edge_index.shape}")
+        print(f" - Saved as: {path}/graph_{i}.pt")
+        print("------------------------------------------------\n")
     
-    print("Single row processed.")
-    return [all_node_embeddings, all_edge_embeddings]
 
-# Example usage:
-explagraph_preprocess()
+if __name__ == '__main__':
+    dataset_path = path + 'train_dev.tsv'
+    dataset = pd.read_csv(dataset_path, sep='\t')
+    
+    # Indexing nodes, edges in graph
+    graph_indexing(dataset)
+    
+    # Split the dataset into train, val, and test sets
+    # split_path = path + 'split'
+    # generate_split(len(dataset), split_path)
+    
