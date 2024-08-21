@@ -6,8 +6,9 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 from sklearn.model_selection import train_test_split
 from torch_geometric.data import Data
+from tqdm import tqdm
 
-
+# for explagraphs dataset
 path = '/home/shkim/G-Retriever-Implement/data/expla_graphs/'
 
 def generate_split(num_nodes, path):
@@ -71,19 +72,11 @@ def graph_indexing(dataset):
     
     # extract nodes, edges
     graphs = extract_graph(dataset)
-    for i, graph in enumerate(graphs):
-        print(f"Graph {i + 1}:")
-        print("Nodes:", graph['nodes'])
-        print("Edges:", graph['edges'])
-        print("\n")
-        
-        
     # create nodes, edges embeddings by using sentence bert
-    print('Encoding graphs...')
     
+    print('Encoding graphs...')
     # Create node embeddings
-    for i, graph in enumerate(graphs):
-        print(f"Processing graph {i + 1}/{len(graphs)}")
+    for i, graph in tqdm(enumerate(graphs), total=len(graphs), desc="Encoding Graphs"): 
         # Create node embeddings
         node_attributes = list(graph['nodes'].keys())
         node_embeddings = sbert.encode(node_attributes, convert_to_tensor=True)
@@ -95,18 +88,19 @@ def graph_indexing(dataset):
         num_nodes = len(graph['nodes'])
         
         data = Data(node_embed=node_embeddings, edge_index=edge_index, edge_embed=edge_embeddings, num_nodes=num_nodes)
-        torch.save(data, f'{path}/graph_{i}.pt')
+        torch.save(data, f'{path}/graphs/graph_{i}.pt')
         
-        print(f"Graph {i + 1} processed and saved.")
-        print(f" - Number of nodes: {num_nodes}")
-        print(f" - Node embeddings shape: {node_embeddings.shape}")
-        print(f" - Edge embeddings shape: {edge_embeddings.shape}")
-        print(f" - Edge index shape: {edge_index.shape}")
-        print(f" - Saved as: {path}/graph_{i}.pt")
-        print("------------------------------------------------\n")
+        # print(f"Graph {i + 1} processed and saved.")
+        # print(f" - Number of nodes: {num_nodes}")
+        # print(f" - Node embeddings shape: {node_embeddings.shape}")
+        # print(f" - Edge embeddings shape: {edge_embeddings.shape}")
+        # print(f" - Edge index shape: {edge_index.shape}")
+        # print(f" - Saved as: {path}/graph_{i}.pt")
+        # print("------------------------------------------------\n")
     
 
 if __name__ == '__main__':
+    # Load dataset
     dataset_path = path + 'train_dev.tsv'
     dataset = pd.read_csv(dataset_path, sep='\t')
     
@@ -114,6 +108,7 @@ if __name__ == '__main__':
     graph_indexing(dataset)
     
     # Split the dataset into train, val, and test sets
-    # split_path = path + 'split'
-    # generate_split(len(dataset), split_path)
+    split_path = path + 'split'
+    generate_split(len(dataset), split_path)
+    
     
