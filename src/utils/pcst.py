@@ -1,21 +1,28 @@
-import pcst_fast
+from pcst_fast import pcst_fast
 import torch
 import numpy as np
 from torch_geometric.data import Data
 
-def pcst(graph, q_emb, nodes, edges, topk_n, topk_e, cost_e):
+def pcst(graph, q_emb, input_nodes, input_edges, topk_n, topk_e, cost_e):
     
     ##############################################
     # Step1: graph processing for pcst algorithm.
     # assign node prize, edge cost
     ##############################################
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    #device = torch.device('cuda')
+    graph = graph.cpu()
+    q_emb = q_emb.cpu()
     
     # 1) Assign node prizes
     node_prizes = torch.nn.CosineSimilarity(dim=-1)(q_emb, graph.node_embed)
     if topk_n > 0:
-        topk_n = min(topk_n, len(nodes))
+        topk_n = min(topk_n, graph.num_nodes)
         _, topk_n_indices = torch.topk(node_prizes, topk_n, largest=True)
+        
+        # print("node_prizes device:", node_prizes.device)
+        # print("topk_n_indices device:", topk_n_indices.device)
+        # print("arange tensor device:", torch.arange(topk_n, 0, -1).device)
+        
         node_prizes = torch.zeros_like(node_prizes)
         node_prizes[topk_n_indices] = torch.arange(topk_n, 0, -1).float()
         # k, k-1, ..., 1
@@ -71,11 +78,22 @@ def pcst(graph, q_emb, nodes, edges, topk_n, topk_e, cost_e):
             virtual_edges.append((virtual_node, dst))    
             virtual_edges_cost.extend([0,0])
             virtual_node_prizes.append(edge_prize-edge_cost) #negative prize
-        
+    
     # virtual graph
     prizes = np.concatenate([node_prizes, np.array(virtual_node_prizes)])
+    edge_num = len(edges)
     costs = np.array(costs+virtual_edges_cost)
     edges = np.array(edges+virtual_edges)
+    
+    # Print statements to check the results
+    # print("Prizes:", prizes)
+    # print("Prizes shape:", prizes.shape)
+
+    # print("Costs:", costs)
+    # print("Costs shape:", costs.shape)
+
+    # print("Edges:", edges)
+    # print("Edges shape:", edges.shape)
     
     ######################################
     # Step2: run pcst and obtain subgraph
@@ -85,16 +103,19 @@ def pcst(graph, q_emb, nodes, edges, topk_n, topk_e, cost_e):
     pruning = 'gw'
     verbosity_level = 0
     
-    nodes, edges = pcst_fast(edges, prizes, costs, root, num_clusters, pruning, verbosity_level)
+    n, e = pcst_fast(edges, prizes, costs, root, num_clusters, pruning, verbosity_level)
+    print("========pcst results=========\n")
+    print("nodes: ", n)
+    print("edges: ", e)
     
     ################################
     # Step3: recover original graph 
     ################################
-    original_nodes = nodes[nodes<graph.num_nodes]
-    original_edges = [edge_to_original_index[e] for e in edges if e<len(edges)]
-    selected_virtual_nodes = nodes - original_nodes
+    original_nodes = n[n<graph.num_nodes]
+    original_edges = [edge_to_original_index[i] for i in e if i<edge_num]
+    selected_virtual_nodes = n[n>=graph.num_nodes]
     if len(selected_virtual_nodes)>0:
-        replaced_edges = [virtual_node_to_edge[n] for n in selected_virtual_nodes]
+        replaced_edges = [virtual_node_to_edge[i] for i in selected_virtual_nodes]
         subgraph_edges = np.array(original_edges+replaced_edges)
     
     # select node based on edges in subgraph
@@ -103,9 +124,13 @@ def pcst(graph, q_emb, nodes, edges, topk_n, topk_e, cost_e):
     all_nodes = np.concatenate([original_nodes, edge_index[0].numpy(), edge_index[1].numpy()])
     subgraph_nodes = np.unique(all_nodes)
     
+    
     # extract nodes, edges in subgraph
-    node = nodes[subgraph_nodes]
-    edge = edges[subgraph_edges]
+    print("Subgraph Nodes:", subgraph_nodes)
+    print("Subgraph Edges:", subgraph_edges)
+
+    node = input_nodes[[input_nodes[i] for i in subgraph_nodes]]
+    edge = input_edges[[input_edges[i] for i in subgraph_edges]]
     mapping = {n: i for i, n in enumerate(subgraph_nodes.tolist())}
     
     # create subgraph data
