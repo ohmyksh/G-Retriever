@@ -56,7 +56,12 @@ class GraphLLM(torch.nn.Module):
             num_heads=4,
         ).to(self.device)
         
-        gnn_embedding = self.graph_encoder(graph.x, graph.edge_index.long(), graph.edge_attr)
+        gnn_embedding = self.graph_encoder(
+            graph.x, 
+            graph.edge_index.long(), 
+            graph.edge_attr
+            )
+        
         graph_embedding = scatter(gnn_embedding, dim=0, reduce='mean')
         return graph_embedding
     
