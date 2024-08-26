@@ -23,6 +23,7 @@ class WebQSP(Dataset):
         dataset = datasets.load_dataset("rmanluo/RoG-webqsp")
         self.dataset = datasets.concatenate_datasets([dataset['train'], dataset['validation'], dataset['test']])
         self.q_embs = torch.load(f'{path}/q_embs.pt')
+        print("WebQSP dataset initialized with total length:", len(self.dataset))
     
     def __getitem__(self, i):
         data = self.dataset[i]
@@ -31,6 +32,7 @@ class WebQSP(Dataset):
         textualized = open(f'{subgraphs}/textualized/{i}.txt', 'r').read()
         nodes = torch.load(f'/mnt/')
         label = ('|').join(data['answer']).lower()
+        print(f"Sample {i} loaded: question and graph")
         
         return {
             'id': i,
@@ -51,24 +53,65 @@ class WebQSP(Dataset):
         return {'train': train_indices, 'val': val_indices, 'test': test_indices}
     
     
+# def subgraph_retrieval(dataset):
+#     q_embs = torch.load(f'{path}/q_embs.pt')
+#     for i in tqdm(range(len(dataset))):
+#         graph = torch.load(f'{graphs_path}/{i}.pt')
+#         nodes = pd.read_csv(f'{graphs_path}/{i}.csv')
+#         edges = pd.read_csv(f'{graphs_path}/{i}.csv')
+#         q_emb = q_embs[i]
+#         # subgraph retrieval
+#         # pcst parameter for webqsp
+#         topk_n = 3
+#         topk_e = 5
+#         cost_e = 0.5
+        
+#         print(f"Processing subgraph retrieval for sample {i}...")
+#         subgraph, textualized = pcst(graph, q_emb, nodes, edges, topk_n, topk_e, cost_e)
+#         torch.save(subgraph, f'{subgraphs}/{i}.pt')
+#         os.makedirs(subgraphs+'/textualized', exist_ok=True)
+#         torch.save(textualized, f'{subgraphs}/textualized/{i}.txt')
+
+
+# test code
 def subgraph_retrieval(dataset):
     q_embs = torch.load(f'{path}/q_embs.pt')
-    for i in tqdm(range(len(dataset))):
-        graph = torch.load(f'{graphs_path}/{i}.pt')
-        nodes = pd.read_csv(f'{graphs_path}/{i}.csv')
-        edges = pd.read_csv(f'{graphs_path}/{i}.csv')
+    
+    num_samples_to_test = 10
+    
+    for i in tqdm(range(num_samples_to_test)):
+        graph = torch.load(f'{graphs_path}/graph_{i}.pt')
+        nodes = pd.read_csv(f'{nodes_path}/{i}.csv')
+        edges = pd.read_csv(f'{edges_path}/{i}.csv')
         q_emb = q_embs[i]
-        # subgraph retrieval
-        # pcst parameter for webqsp
+
         topk_n = 3
         topk_e = 5
         cost_e = 0.5
+        
+        print(f"Processing subgraph retrieval for sample {i}...")
+        
         subgraph, textualized = pcst(graph, q_emb, nodes, edges, topk_n, topk_e, cost_e)
+        
         torch.save(subgraph, f'{subgraphs}/{i}.pt')
         os.makedirs(subgraphs+'/textualized', exist_ok=True)
-        torch.save(textualized, f'{subgraphs}/textualized/{i}.txt')
+        
+        with open(f'{subgraphs}/textualized/{i}.txt', 'w') as f:
+            f.write(textualized)
+        
+        print(f"Sample {i} Subgraph:", subgraph)
+        print(f"Sample {i} Textualized Data:\n{textualized}")
         
 
 if __name__ == '__main__':
     dataset = WebQSP()
     subgraph_retrieval(dataset)
+    sample_index = 14  
+    sample = dataset[sample_index]
+    print(f"Sample {sample_index} contents:")
+    print("ID:", sample['id'])
+    print("Question:", sample['question'])
+    print("Label:", sample['label'])
+    print("Graph:", sample['graph'])
+    print("Textualized:", sample['textualized'])
+    
