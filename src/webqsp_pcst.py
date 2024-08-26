@@ -84,16 +84,6 @@ def subgraph_retrieval(dataset):
         nodes = pd.read_csv(f'{nodes_path}/{i}.csv')
         edges = pd.read_csv(f'{edges_path}/{i}.csv')
         q_emb = q_embs[i]
-
-        if graph is None:
-            print(f"Sample {i}: graph is None")
-        if nodes is None:
-            print(f"Sample {i}: nodes is None")
-        if edges is None:
-            print(f"Sample {i}: edges is None")
-        if q_emb is None:
-            print(f"Sample {i}: q_emb is None")
-        
         
         topk_n = 3
         topk_e = 5

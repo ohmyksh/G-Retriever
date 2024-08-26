@@ -9,9 +9,10 @@ def pcst(graph, q_emb, nodes, edges, topk_n, topk_e, cost_e):
     # Step1: graph processing for pcst algorithm.
     # assign node prize, edge cost
     ##############################################
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # 1) Assign node prizes
-    node_prizes = torch.nn.functional.cosine_similarity(q_emb.unsqueeze(0), graph.x, dim=-1)
+    node_prizes = torch.nn.CosineSimilarity(dim=-1)(q_emb, graph.node_embed)
     if topk_n > 0:
         topk_n = min(topk_n, len(nodes))
         _, topk_n_indices = torch.topk(node_prizes, topk_n, largest=True)
@@ -27,7 +28,7 @@ def pcst(graph, q_emb, nodes, edges, topk_n, topk_e, cost_e):
     # so I referred to the code for accurate implementation.
     
     c = 0.01  # Small constant for adjusting edge costs
-    edge_prizes = torch.nn.functional.cosine_similarity(q_emb.unsqueeze(0), graph.edge_attr, dim=-1)
+    edge_prizes = torch.nn.functional.cosine_similarity(q_emb.unsqueeze(0), graph.edge_embed, dim=-1)
     if topk_e > 0:
         topk_e_values, _ = torch.topk(edge_prizes.unique(), topk_e, largest=True)
         edge_prizes[edge_prizes < topk_e_values[-1]] = 0.0
@@ -108,12 +109,12 @@ def pcst(graph, q_emb, nodes, edges, topk_n, topk_e, cost_e):
     mapping = {n: i for i, n in enumerate(subgraph_nodes.tolist())}
     
     # create subgraph data
-    x = graph.x[subgraph_nodes]
-    edge_attr = graph.edge_attr[subgraph_edges]
+    node_embedding = graph.node_embed[subgraph_nodes]
+    edge_embed = graph.edge_attr[subgraph_edges]
     src = [mapping[i] for i in edge_index[0].tolist()]
     dst = [mapping[i] for i in edge_index[1].tolist()]
     edge_index = torch.LongTensor([src, dst])
-    subgraph = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, num_nodes=len(subgraph_nodes))
+    subgraph = Data(node_embed=node_embedding, edge_index=edge_index, edge_embed=edge_embed, num_nodes=len(subgraph_nodes))
     textualized = node.to_csv(index=False)+'\n'+edge.to_csv(index=False, columns=['src', 'edge_attr', 'dst'])
     
     return subgraph, textualized
