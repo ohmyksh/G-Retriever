@@ -22,15 +22,14 @@ class WebQSP(Dataset):
         self.graph = None
         dataset = datasets.load_dataset("rmanluo/RoG-webqsp")
         self.dataset = datasets.concatenate_datasets([dataset['train'], dataset['validation'], dataset['test']])
-        self.q_embs = torch.load(f'{path}/q_embs.pt')
-        print("WebQSP dataset initialized with total length:", len(self.dataset))
+        self.q_embs = torch.load(f'/home/shkim/q_embs.pt')
         self.len = len(self.dataset)
     
     def __getitem__(self, i):
         data = self.dataset[i]
         question = f'Question: {data["question"]}\nAnswer: '
         graph = torch.load(f'{subgraphs}/{i}.pt')
-        textualized = open(f'{subgraphs}/textualized/{i}.txt', 'rb').read()
+        textualized = open(f'{subgraphs}/textualized/{i}.txt', 'r').read()
         # nodes = torch.load(f'{nodes_path}/{i}.csv')
         label = ('|').join(data['answer']).lower()
         
@@ -55,7 +54,7 @@ class WebQSP(Dataset):
     
 def subgraph_retrieval(dataset):
     q_embs = torch.load(f'{path}/q_embs.pt')
-    for i in tqdm(range(4700, dataset.len+1)):
+    for i in tqdm(range(dataset.len)):
         graph = torch.load(f'{graphs_path}/graph_{i}.pt')
         nodes = pd.read_csv(f'{nodes_path}/{i}.csv')
         edges = pd.read_csv(f'{edges_path}/{i}.csv')
@@ -70,8 +69,7 @@ def subgraph_retrieval(dataset):
         subgraph, textualized = pcst(graph, q_emb, nodes, edges, topk_n, topk_e, cost_e)
         torch.save(subgraph, f'{subgraphs}/{i}.pt')
         os.makedirs(subgraphs+'/textualized', exist_ok=True)
-        torch.save(textualized, f'{subgraphs}/textualized/{i}.txt')
-
+        open(f'{subgraphs}/textualized/{i}.txt', 'w').write(textualized)
 
 
 if __name__ == '__main__':
