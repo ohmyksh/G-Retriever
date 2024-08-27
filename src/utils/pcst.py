@@ -79,23 +79,12 @@ def pcst(graph, q_emb, input_nodes, input_edges, topk_n, topk_e, cost_e):
             virtual_edges.append((virtual_node, dst))    
             virtual_edges_cost.extend([0,0])
             virtual_node_prizes.append(edge_prize-edge_cost) #negative prize
-            print(f"Virtual node created: virtual_node={virtual_node}")
-            print(f"Virtual edges added: {(src, virtual_node)}, {(virtual_node, dst)}")
-            print(f"Virtual node prizes updated: {virtual_node_prizes[-1]}")
     
     # virtual graph
     prizes = np.concatenate([node_prizes, np.array(virtual_node_prizes)])
     edge_num = len(edges)
     costs = np.array(costs+virtual_edges_cost)
     edges = np.array(edges+virtual_edges)
-    
-    # final result
-    print("\nFinal results:")
-    print(f"Number of original edges: {edge_num}")
-    print(f"Total number of edges: {len(edges)}")
-    print(f"Edges: {edges}")
-    print(f"Costs: {costs}")
-    print(f"Prizes: {prizes}")
     
     ######################################
     # Step2: run pcst and obtain subgraph

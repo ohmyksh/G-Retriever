@@ -30,9 +30,8 @@ class WebQSP(Dataset):
         question = f'Question: {data["question"]}\nAnswer: '
         graph = torch.load(f'{subgraphs}/{i}.pt')
         textualized = open(f'{subgraphs}/textualized/{i}.txt', 'r').read()
-        nodes = torch.load(f'/mnt/')
+        # nodes = torch.load(f'{nodes_path}/{i}.csv')
         label = ('|').join(data['answer']).lower()
-        print(f"Sample {i} loaded: question and graph")
         
         return {
             'id': i,
@@ -107,9 +106,8 @@ def subgraph_retrieval(dataset):
 if __name__ == '__main__':
     dataset = WebQSP()
     subgraph_retrieval(dataset)
-    
-    
-    sample_index = 14  
+    # test
+    sample_index = 4 
     sample = dataset[sample_index]
     print(f"Sample {sample_index} contents:")
     print("ID:", sample['id'])
