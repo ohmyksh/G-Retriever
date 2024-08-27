@@ -129,11 +129,11 @@ if __name__ == '__main__':
     dataset = load_dataset("rmanluo/RoG-webqsp")
     dataset = concatenate_datasets([dataset['train'], dataset['validation'], dataset['test']])
     
-    # Indexing nodes, edges in graph
-    graph_indexing(dataset)
+    # # Indexing nodes, edges in graph
+    # graph_indexing(dataset)
     
-    # # Split the dataset into train, val, and test sets
-    # split_path = path + 'split'
-    # generate_split(len(dataset), split_path)
+    # Split the dataset into train, val, and test sets
+    split_path = path + 'split'
+    generate_split(len(dataset), split_path)
     
     

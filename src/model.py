@@ -79,22 +79,36 @@ class GraphLLM(torch.nn.Module):
         # Answer Generation
         #####################
         
+        print("Start Inference...")
+        
         question = self.tokenizer(sample["question"])
+        print(f"Question: {question}")
+        
         # 1. Graph Encoder
+        print("Encoding graph...")
         graph_embedding = self.graph_encoder(sample["graph"])
+        print(f"Graph Embedding: {graph_embedding.shape}")
         
         # 2. Projection Layer
+        print("Projecting graph embedding...")
         projected_graph = self.projection(graph_embedding)
+        print(f"Projected Graph Embedding: {projected_graph.shape}")
         
         # 3. Text Embedder
+        print("Textualized graph...")
         textualized_graph = self.tokenizer(sample["textualized"])
+        print(f"Tokenized Textualized Graph: {textualized_graph}")
+
         textembed_input = torch.concat([textualized_graph, question], dim=0)
         text_embedding = self.model.model.get_input_embeddings(torch.tensor(textembed_input).to(self.model.device))
         input_embedding = torch.cat([graph_embedding, text_embedding], dim=0)
+        print(f"Input Embedding: {input_embedding.shape}")
         
         # 4. LLM Generation with Graph Prompt Tuning
+        print("Generating answer using LLM...")
         output = self.model.generate(
              inputs_embeds=input_embedding,
         )
         answer = self.tokenizer.decode(output[0], skip_special_tokens=True)
+        print(f"Generated Answer: {answer}")
         return answer
