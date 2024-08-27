@@ -106,13 +106,4 @@ def subgraph_retrieval(dataset):
 if __name__ == '__main__':
     dataset = WebQSP()
     subgraph_retrieval(dataset)
-    # test
-    sample_index = 4 
-    sample = dataset[sample_index]
-    print(f"Sample {sample_index} contents:")
-    print("ID:", sample['id'])
-    print("Question:", sample['question'])
-    print("Label:", sample['label'])
-    print("Graph:", sample['graph'])
-    print("Textualized:", sample['textualized'])
     
