@@ -80,6 +80,7 @@ def subgraph_retrieval(dataset):
     num_samples_to_test = 10
     
     for i in tqdm(range(num_samples_to_test)):
+        
         graph = torch.load(f'{graphs_path}/graph_{i}.pt')
         nodes = pd.read_csv(f'{nodes_path}/{i}.csv')
         edges = pd.read_csv(f'{edges_path}/{i}.csv')
@@ -106,6 +107,8 @@ def subgraph_retrieval(dataset):
 if __name__ == '__main__':
     dataset = WebQSP()
     subgraph_retrieval(dataset)
+    
+    
     sample_index = 14  
     sample = dataset[sample_index]
     print(f"Sample {sample_index} contents:")

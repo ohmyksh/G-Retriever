@@ -27,7 +27,7 @@ def pcst(graph, q_emb, input_nodes, input_edges, topk_n, topk_e, cost_e):
         node_prizes[topk_n_indices] = torch.arange(topk_n, 0, -1).float()
         # k, k-1, ..., 1
     else:
-        node_prizes = torch.zeros(len(nodes))
+        node_prizes = torch.zeros(graph.num_nodes)
         
     # 2) Assign edge prizes
     
@@ -48,7 +48,7 @@ def pcst(graph, q_emb, input_nodes, input_edges, topk_n, topk_e, cost_e):
         # reduce the cost of the edges
         cost_e = min(cost_e, edge_prizes.max().item() * (1 - c/2))
     else:
-        edge_prizes = torch.zeros(len(edges))
+        edge_prizes = torch.zeros(len(graph.edges))
     
     
     # 3) Calculate the cost of edges
@@ -66,6 +66,7 @@ def pcst(graph, q_emb, input_nodes, input_edges, topk_n, topk_e, cost_e):
     for i, (src, dst) in enumerate(graph.edge_index.T.numpy()):
         edge_prize = edge_prizes[i]
         edge_cost = cost_e #predefined cost per edge
+        
         if edge_prize <= edge_cost:
             reduced_cost = edge_cost - edge_prize
             edge_to_original_index[len(edges)] = i
@@ -78,6 +79,9 @@ def pcst(graph, q_emb, input_nodes, input_edges, topk_n, topk_e, cost_e):
             virtual_edges.append((virtual_node, dst))    
             virtual_edges_cost.extend([0,0])
             virtual_node_prizes.append(edge_prize-edge_cost) #negative prize
+            print(f"Virtual node created: virtual_node={virtual_node}")
+            print(f"Virtual edges added: {(src, virtual_node)}, {(virtual_node, dst)}")
+            print(f"Virtual node prizes updated: {virtual_node_prizes[-1]}")
     
     # virtual graph
     prizes = np.concatenate([node_prizes, np.array(virtual_node_prizes)])
@@ -85,15 +89,13 @@ def pcst(graph, q_emb, input_nodes, input_edges, topk_n, topk_e, cost_e):
     costs = np.array(costs+virtual_edges_cost)
     edges = np.array(edges+virtual_edges)
     
-    # Print statements to check the results
-    # print("Prizes:", prizes)
-    # print("Prizes shape:", prizes.shape)
-
-    # print("Costs:", costs)
-    # print("Costs shape:", costs.shape)
-
-    # print("Edges:", edges)
-    # print("Edges shape:", edges.shape)
+    # final result
+    print("\nFinal results:")
+    print(f"Number of original edges: {edge_num}")
+    print(f"Total number of edges: {len(edges)}")
+    print(f"Edges: {edges}")
+    print(f"Costs: {costs}")
+    print(f"Prizes: {prizes}")
     
     ######################################
     # Step2: run pcst and obtain subgraph
@@ -104,38 +106,32 @@ def pcst(graph, q_emb, input_nodes, input_edges, topk_n, topk_e, cost_e):
     verbosity_level = 0
     
     n, e = pcst_fast(edges, prizes, costs, root, num_clusters, pruning, verbosity_level)
-    print("========pcst results=========\n")
-    print("nodes: ", n)
-    print("edges: ", e)
     
     ################################
     # Step3: recover original graph 
     ################################
-    original_nodes = n[n<graph.num_nodes]
-    original_edges = [edge_to_original_index[i] for i in e if i<edge_num]
+    subgraph_nodes = n[n<graph.num_nodes]
+    subgraph_edges = [edge_to_original_index[i] for i in e if i<edge_num]
     selected_virtual_nodes = n[n>=graph.num_nodes]
     if len(selected_virtual_nodes)>0:
         replaced_edges = [virtual_node_to_edge[i] for i in selected_virtual_nodes]
-        subgraph_edges = np.array(original_edges+replaced_edges)
+        subgraph_edges = np.array(subgraph_edges+replaced_edges)
     
     # select node based on edges in subgraph
     edge_index = graph.edge_index[:, subgraph_edges]
     # combine all nodes with src, dst nodes of edges
-    all_nodes = np.concatenate([original_nodes, edge_index[0].numpy(), edge_index[1].numpy()])
-    subgraph_nodes = np.unique(all_nodes)
+    subgraph_nodes = np.concatenate([subgraph_nodes, edge_index[0].numpy(), edge_index[1].numpy()])
+    subgraph_nodes = np.unique(subgraph_nodes)
     
-    
-    # extract nodes, edges in subgraph
-    print("Subgraph Nodes:", subgraph_nodes)
-    print("Subgraph Edges:", subgraph_edges)
-
-    node = input_nodes[[input_nodes[i] for i in subgraph_nodes]]
-    edge = input_edges[[input_edges[i] for i in subgraph_edges]]
+    node = input_nodes.iloc[subgraph_nodes]
+    edge = input_edges.iloc[subgraph_edges]
+    # node = [input_nodes[i] for i in subgraph_nodes]
+    # edge = [input_edges[i] for i in subgraph_edges]
     mapping = {n: i for i, n in enumerate(subgraph_nodes.tolist())}
     
     # create subgraph data
     node_embedding = graph.node_embed[subgraph_nodes]
-    edge_embed = graph.edge_attr[subgraph_edges]
+    edge_embed = graph.edge_embed[subgraph_edges]
     src = [mapping[i] for i in edge_index[0].tolist()]
     dst = [mapping[i] for i in edge_index[1].tolist()]
     edge_index = torch.LongTensor([src, dst])
