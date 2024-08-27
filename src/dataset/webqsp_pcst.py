@@ -4,7 +4,7 @@ import pandas as pd
 from torch.utils.data import Dataset
 import datasets
 from tqdm import tqdm
-from utils.pcst import pcst
+from dataset.utils.pcst import pcst
 
 # for webqsp dataset
 path = '/mnt/nvme1n1p2/shkim/webqsp'
@@ -30,7 +30,7 @@ class WebQSP(Dataset):
         data = self.dataset[i]
         question = f'Question: {data["question"]}\nAnswer: '
         graph = torch.load(f'{subgraphs}/{i}.pt')
-        textualized = open(f'{subgraphs}/textualized/{i}.txt', 'r').read()
+        textualized = open(f'{subgraphs}/textualized/{i}.txt', 'rb').read()
         # nodes = torch.load(f'{nodes_path}/{i}.csv')
         label = ('|').join(data['answer']).lower()
         
@@ -55,7 +55,7 @@ class WebQSP(Dataset):
     
 def subgraph_retrieval(dataset):
     q_embs = torch.load(f'{path}/q_embs.pt')
-    for i in tqdm(range(dataset.len)):
+    for i in tqdm(range(4700, dataset.len+1)):
         graph = torch.load(f'{graphs_path}/graph_{i}.pt')
         nodes = pd.read_csv(f'{nodes_path}/{i}.csv')
         edges = pd.read_csv(f'{edges_path}/{i}.csv')
