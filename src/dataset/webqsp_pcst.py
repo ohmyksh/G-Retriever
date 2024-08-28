@@ -22,7 +22,9 @@ class WebQSP(Dataset):
         self.graph = None
         dataset = datasets.load_dataset("rmanluo/RoG-webqsp")
         self.dataset = datasets.concatenate_datasets([dataset['train'], dataset['validation'], dataset['test']])
-        self.q_embs = torch.load(f'/home/shkim/q_embs.pt')
+        print("Loading q_embs...")
+        self.q_embs = torch.load(f'/mnt/nvme1n1p2/shkim/webqsp/q_embs.pt')
+        print("load!!!!!")
         self.len = len(self.dataset)
     
     def __getitem__(self, i):

@@ -3,6 +3,9 @@ import torch.nn as nn
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from torch_scatter import scatter
 from torch_geometric.nn import TransformerConv
+import contextlib
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  
 
 class GraphTransformer(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers, dropout, num_heads=-1):
@@ -37,8 +40,9 @@ class GraphLLM(torch.nn.Module):
         model = AutoModelForCausalLM.from_pretrained(
             model_info, 
             device_map="auto", 
-            torch_dtype=torch.float16
-            ).to("cuda")
+            torch_dtype=torch.float16,
+            low_cpu_mem_usage=True
+            ).to(self.device)
         # freezing Llama
         for param in model.parameters():
             param.requires_grad = False
@@ -55,7 +59,6 @@ class GraphLLM(torch.nn.Module):
         
     @property
     def device(self):
-        device = torch.device("cuda:0") 
         return torch.device("cuda:0")
     
     def graph_encoding(self, graph):
@@ -70,11 +73,6 @@ class GraphLLM(torch.nn.Module):
         
         # mean pooling
         graph_embedding = torch.mean(gnn_embedding, dim=0)
-        
-        print(f"Final graph embedding shape: {graph_embedding.shape}")
-
-        print("Graph encoding completed.")
-    
         return graph_embedding
     
     def projection(self, embed):
@@ -85,6 +83,7 @@ class GraphLLM(torch.nn.Module):
             ).to(self.model.device)
         return projection(embed)
     
+        
         
     def inference(self, sample):
         #####################
@@ -118,22 +117,20 @@ class GraphLLM(torch.nn.Module):
 
         # Ensure both tensors have the same number of dimensions
         if projected_graph.dim() == 1:
+            print("projected_graph.unsqueeze!!")
             projected_graph = projected_graph.unsqueeze(0)  # Convert to 2D tensor
 
-        
         input_embedding = torch.cat([projected_graph, text_embedding], dim=0)
-        print(f"Input Embedding: {input_embedding.shape}")
-        
-        print(f"Model device: {next(self.model.parameters()).device}")
-        print(f"Graph embedding device: {graph_embedding.device}")
-        print(f"Projected graph device: {projected_graph.device}")
-        print(f"Text embedding device: {text_embedding.device}")
-        print(f"Input embedding device: {input_embedding.device}")
+        print(f"Input embedding shape: {input_embedding.shape}")
         
         # 4. LLM Generation with Graph Prompt Tuning
         print("Generating answer using LLM...")
-        output = self.model(
-             inputs_embeds=input_embedding,
+        # for name, param in self.model.named_parameters():
+        #     print(f"Parameter {name} is on {param.device}")
+        
+        output = self.model.generate(
+            inputs_embeds=input_embedding.unsqueeze(0),
+            max_new_tokens = 32
         )
         answer = self.tokenizer.decode(output[0], skip_special_tokens=True)
         print(f"Generated Answer: {answer}")

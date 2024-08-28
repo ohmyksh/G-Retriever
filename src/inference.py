@@ -32,7 +32,7 @@ def main():
     
     with open(output_file, "w") as f:
         # not using batch
-        print("Starting inference...")  # 추론 시작
+        print("Starting inference...")  
         for i, sample in enumerate(test_dataset):
             print(f"Processing sample {i + 1}/{len(test_dataset)}") 
             with torch.no_grad():
