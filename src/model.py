@@ -57,6 +57,12 @@ class GraphLLM(torch.nn.Module):
             num_heads=4,
         ).to(self.device)
         
+        self.projector = nn.Sequential(
+                nn.Linear(1024, 2048),
+                nn.ReLU(),
+                nn.Linear(2048, 4096)
+            ).to(self.model.device)
+        
     @property
     def device(self):
         return torch.device("cuda:0")
@@ -76,14 +82,29 @@ class GraphLLM(torch.nn.Module):
         return graph_embedding
     
     def projection(self, embed):
-        projection = nn.Sequential(
-                nn.Linear(1024, 2048),
-                nn.ReLU(),
-                nn.Linear(2048, 4096)
-            ).to(self.model.device)
-        return projection(embed)
-    
+        return self.projector(embed)
+
+
+    def forward(self, sample):
+        device = torch.device("cuda:0")
+        question = self.tokenizer(sample["question"],return_tensors="pt")
+        graph_embedding = self.graph_encoding(sample["graph"])
+        projected_graph = self.projection(graph_embedding)
+        textualized_graph = self.tokenizer(sample["textualized"],return_tensors="pt", add_special_tokens=False)
+        textualized_graph = textualized_graph.input_ids.squeeze(0)
+        question = question.input_ids.squeeze(0)
         
+        textembed_input = torch.cat([textualized_graph[:512], question], dim=0)
+        text_embedding = self.model.model.get_input_embeddings()(torch.tensor(textembed_input).to(self.model.device))
+        
+        projected_graph = projected_graph.unsqueeze(0) 
+        input_embedding = torch.cat([projected_graph, text_embedding], dim=0)
+        
+        output = self.model(
+            inputs_embeds=input_embedding.unsqueeze(0)
+        )
+        
+        return output.loss
         
     def inference(self, sample):
         #####################
