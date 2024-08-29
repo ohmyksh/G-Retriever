@@ -27,10 +27,6 @@ dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
 # model
 model = GraphLLM()
 params = [p for _, p in model.named_parameters() if p.requires_grad]
-
-for name, param in model.named_parameters():
-    print(f"Parameter: {name}")
-    print(f"Requires Grad: {param.requires_grad}")
     
 # optimizer
 optimizer = optim.AdamW(
@@ -40,45 +36,38 @@ optimizer = optim.AdamW(
     betas = (0.9, 0.95)
     )
 
-# # lr scheduler: learning rate decays with a half-cycle cosine decay after the warm-up period.
-# def lr_scheduler(optimizer, base_lr, current_step, total_steps):
-#     lr = base_lr * 0.5 * (1. + torch.cos(torch.pi * current_step / total_steps))
-#     for param_group in optimizer.param_groups:
-#         param_group['lr'] = lr
-#     return lr
+# lr scheduler: learning rate decays with a half-cycle cosine decay after the warm-up period.
+def lr_scheduler(optimizer, base_lr, current_step, total_steps):
+    lr = base_lr * 0.5 * (1. + torch.cos(torch.pi * current_step / total_steps))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+    return lr
  
     
-# # Training loop
-# total_steps = len(dataloader) * num_epochs
-# for epoch in range(num_epochs):
-#     model.train()
-#     total_loss = 0.0
+# Training loop
+total_steps = len(dataloader) * num_epochs
+for epoch in range(num_epochs):
+    model.train()
+    total_loss = 0.0
         
-#     for step, batch in enumerate(tqdm(dataloader)):
-#         optimizer.zero_grad()
+    for step, batch in enumerate(tqdm(dataloader)):
         
-#         outputs = model(batch)
-#         labels = batch['labels'].to(model.model.device) 
+        optimizer.zero_grad()
+        loss = model(batch)
         
-#         # Calculate loss
-#         loss_fn = nn.CrossEntropyLoss(ignore_index=-100)  
-#         loss = loss_fn(outputs.view(-1, outputs.size(-1)), labels.view(-1))
+        # Backpropagation
+        loss.backward()
+        # Learning Rate Scheduling
+        current_step = epoch * len(dataloader) + step
+        current_lr = lr_scheduler(optimizer, initial_lr, current_step, total_steps)
         
-#         # Backpropagation
-#         loss.backward()
-#         optimizer.step()
+        optimizer.step()
+        total_loss += loss.item()
         
-#         current_step = epoch * len(dataloader) + step
-#         current_lr = lr_scheduler(optimizer, initial_lr, current_step, total_steps)
-#         total_loss += loss.item()
+    avg_loss = total_loss / len(dataloader)
+    print(f'Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.4f}')
         
-#         wandb.log({
-#             "epoch": epoch + 1,
-#             "loss": loss,
-#             "learning_rate": current_lr,
-#         })
-        
-#     avg_loss = total_loss / len(dataloader)
-#     print(f'Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.4f}')
-        
-# print("Training Complete!")
+print("Training Complete!")
+
+# torch.cuda.empty_cache()
+# torch.cuda.reset_max_memory_allocated()
