@@ -1,7 +1,7 @@
 # Paper Implementation
 # 🔎 G-Retriever: Retrieval-Augmented Generation for Textual Graph Understanding and Question Answering (Arxiv 2024)   
 📑  Paper: [(link)](https://arxiv.org/pdf/2402.07630)  
-💾  Original Repo: [(link)]([https://github.com/IDEA-FinAI/ToG](https://github.com/XiaoxinHe/G-Retriever))  
+💾  Original Repo: [(link)](https://github.com/XiaoxinHe/G-Retriever)  
 
 ## 🌱 Contents
 1. [Paper summary](#Summary)
