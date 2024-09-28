@@ -5,29 +5,13 @@
 
 ## 🌱 Contents
 1. [Paper summary](#Summary)
-2. [Pseudocode for implement](#Pseudocode)
-3. [Module design](#Modules)
-4. [Implementation details](#Implementation-Details)
-5. [Discussion and opportunities for improvement](#Discussion-and-Opportunities-for-improvement)
+2. [Module design](#Modules)
+3. [Implementation details](#Implementation-Details)
+4. [Discussion and opportunities for improvement](#Discussion-and-Opportunities-for-improvement)
 
 
 ## Summary
 The paper introduces a new GraphQA benchmark for real-world graph question answering and present G-Retriever, an architecture adept at complex and creative queries. Experimental results show that G-Retriever surpasses baselines in textual graph tasks across multiple domains, scales effectively with larger graph sizes, and demonstrates resistance to hallucination.
-
-## Pseudocode
-**Input**: question \( q \), textual graph \( G \)
-
-\[
-\begin{aligned}
-\{z_n\}, \{z_e\} &= \text{Indexing}(G) \quad \# \text{set of node and edge embeddings} \\
-V_K', E_K' &= \text{Retriever}(q, \{z_n\}, \{z_e\}) \\
-S^* &= \text{SubgraphConstructor}(V_K', E_K') \\
-A &= \text{AnswerGenerator}(q, S^*)
-\end{aligned}
-\]
-
-**Output**: answer \( A \)  
-This pseudocode is implemented using the modules described below:
 
 ## Modules
 <img src="figs/g-retriever-figure.png" alt="My Illustration for Implementation" width="800">
