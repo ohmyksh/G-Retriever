@@ -15,7 +15,7 @@
 The paper introduces a new GraphQA benchmark for real-world graph question answering and present G-Retriever, an architecture adept at complex and creative queries. Experimental results show that G-Retriever surpasses baselines in textual graph tasks across multiple domains, scales effectively with larger graph sizes, and demonstrates resistance to hallucination.
 
 ## Pseudocode
-**Input**: question \(q\), textual graph \(G\)
+**Input**: question \( q \), textual graph \( G \)
 
 \[
 \begin{aligned}
@@ -26,7 +26,7 @@ A &= \text{AnswerGenerator}(q, S^*)
 \end{aligned}
 \]
 
-**Output**: answer \(A\)
+**Output**: answer \( A \)  
 This pseudocode is implemented using the modules described below:
 
 ## Modules
