@@ -43,7 +43,7 @@ G-Retriever consists of four stages. First, it indexes the node and edge text at
      4) **LLM Generation**: Produces the final answer \( Y \), using graph tokens as soft prompts.
 
 ## Implementation Details
-* Dataset:ExplaGraphs
+* Dataset: ExplaGraphs
 * Metric: Exact Match Accuracy (Hits@1)
 * Model: Llama2-7b(LLM), SentenceBert(encoder), Graph Transformer(graph encoder)
 
