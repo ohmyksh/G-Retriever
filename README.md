@@ -48,8 +48,9 @@ G-Retriever consists of four stages. First, it indexes the node and edge text at
 * Model: Llama2-7b(LLM), SentenceBert(encoder), Graph Transformer(graph encoder)
 
 ## Discussion and Opportunities for improvement 
-**Inaccurate Subgraph Construction**:  
+### **Inaccurate Subgraph Construction**  
 - Subgraphs may be constructed inaccurately. A subgraph is selected based on the total score calculated from the similarity between node/edge embeddings and the query. However, while the total score may be high, it could include irrelevant elements or fail to include highly relevant ones.
 - Elements necessary for response generation may have low relevance to the query (e.g., multi-hop reasoning).   
-**Failure to Leverage Structural Information**:   
+
+### **Failure to Leverage Structural Information**  
 - The model may fail to fully leverage the graph's structural (topological) information. Since only individual embeddings for nodes and edges are generated, the connectivity within the graph is not adequately captured.
