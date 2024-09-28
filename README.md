@@ -28,7 +28,7 @@ A &= \text{AnswerGenerator}(q, S^*)
 This pseudocode is implemented using the modules described below:
 
 ## Modules
-<img src="g-retriever-figure.png" alt="My Illustration for Implementation" width="800">
+<img src="figs/g-retriever-figure.png" alt="My Illustration for Implementation" width="800">
 G-Retriever consists of four stages. First, it indexes the node and edge text attributes of a given textual graph to generate embeddings. Based on these embeddings, it constructs a subgraph composed of nodes and edges relevant to the given query. Finally, an LLM generates the final response using the subgraph and query as input prompts.
 
 
